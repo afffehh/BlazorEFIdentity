@@ -1,0 +1,71 @@
+﻿@page "/Account/Manage/ChangeAdress"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using BlazorEFIdentity.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+@inject ILogger<ChangeAdress> Logger
+
+<PageTitle>Change Address</PageTitle>
+
+<h3>Change Address</h3>
+<StatusMessage Message="@message" />
+<div class="row">
+    <div class="col-md-6">
+        <EditForm Model="Input" FormName="change-address" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" role="alert" />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.NewAddress" class="form-control" aria-required="true" placeholder="Please enter your new address." />
+                <label for="new-address" class="form-label">New Address</label>
+                <ValidationMessage For="() => Input.NewAddress" class="text-danger" />
+            </div>
+            <button type="submit" class="w-100 btn btn-lg btn-primary">Update Address</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private string? message;
+    private ApplicationUser user = default!;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        Input.NewAddress = user.Adress ?? ""; // Antag att Address är en egenskap i ApplicationUser
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        user.Adress = Input.NewAddress;
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            message = $"Error: {string.Join(",", updateResult.Errors.Select(error => error.Description))}";
+            return;
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        Logger.LogInformation("User changed their address successfully.");
+
+        RedirectManager.RedirectToCurrentPageWithStatus("Your address has been updated", HttpContext);
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [StringLength(200, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 5)]
+        [Display(Name = "New Address")]
+        public string NewAddress { get; set; } = "";
+    }
+}

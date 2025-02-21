@@ -1,0 +1,170 @@
+﻿@page "/admin"
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> userManager
+@inject RoleManager<IdentityRole> roleManager
+@inject AuthenticationStateProvider authenticationStateProvider
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin</PageTitle>
+
+<h3>Registered Users</h3>
+
+<table class="table">
+	<thead>
+		<tr>
+			<th scope="col">#</th>
+			<th scope="col">Full Name</th>
+			<th scope="col">Email</th>
+			<th scope="col">Actions</th>
+		</tr>
+	</thead>
+	<tbody>
+		@if (applicationUsers != null)
+		{
+			int index = 1;
+			@foreach (var user in applicationUsers)
+			{
+				<tr>
+					<th scope="row">@index</th>
+					<td>@user.Handle</td>
+					<td>@user.Email</td>
+					<td>
+						<button class="btn btn-primary btn-sm" @onclick="() => OpenUserRoleModal(user)">Manage</button>
+						<button class="btn btn-danger btn-sm" @onclick="() => ConfirmDeleteUser(user)">Delete</button>
+					</td>
+				</tr>
+				index++;
+			}
+		}
+		else
+		{
+			<tr>
+				<td colspan="4">Loading users...</td>
+			</tr>
+		}
+	</tbody>
+</table>
+
+
+@if (selectedUser != null)
+{
+	<div class="modal show d-block" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Manage Roles for @selectedUser.Email</h5>
+					<button type="button" class="btn-close" @onclick="CloseUserRoleModal"></button>
+				</div>
+				<div class="modal-body">
+					@foreach (var role in allRoles)
+					{
+						<div class="form-check">
+							<input type="checkbox" class="form-check-input" id="@role" checked="@userRoles[selectedUser.Id].Contains(role)"
+								   @onchange="(e) => ToggleUserRole(selectedUser, role, e.Value)">
+							<label class="form-check-label" for="@role">@role</label>
+						</div>
+					}
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" @onclick="CloseUserRoleModal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+
+@if (userToDelete != null)
+{
+	<div class="modal show d-block" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Confirm Deletion</h5>
+					<button type="button" class="btn-close" @onclick="CancelDelete"></button>
+				</div>
+				<div class="modal-body">
+					<p>Are you sure you want to delete <strong>@userToDelete.Email</strong>?</p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger" @onclick="DeleteUser">Delete</button>
+					<button type="button" class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
+@code {
+	private List<ApplicationUser> applicationUsers = new List<ApplicationUser>();
+	private Dictionary<string, List<string>> userRoles = new();
+	private List<string> allRoles = new();
+	private ApplicationUser selectedUser;
+	private ApplicationUser userToDelete;
+
+	protected override async Task OnInitializedAsync()
+	{
+		applicationUsers = userManager.Users.ToList();
+		allRoles = roleManager.Roles.Select(r => r.Name).ToList();
+
+		foreach (var user in applicationUsers)
+		{
+			userRoles[user.Id] = (await userManager.GetRolesAsync(user)).ToList();
+		}
+	}
+
+	private void OpenUserRoleModal(ApplicationUser user)
+	{
+		selectedUser = user;
+		StateHasChanged();
+	}
+
+	private void CloseUserRoleModal()
+	{
+		selectedUser = null;
+		StateHasChanged();
+	}
+
+	private async Task ToggleUserRole(ApplicationUser user, string role, object checkedValue)
+	{
+		bool isChecked = (bool)checkedValue;
+		if (isChecked)
+		{
+			await userManager.AddToRoleAsync(user, role);
+		}
+		else
+		{
+			await userManager.RemoveFromRoleAsync(user, role);
+		}
+
+		// Uppdatera rollistan
+		userRoles[user.Id] = (await userManager.GetRolesAsync(user)).ToList();
+		StateHasChanged();
+	}
+
+	private void ConfirmDeleteUser(ApplicationUser user)
+	{
+		userToDelete = user;
+		StateHasChanged();
+	}
+
+	private async Task DeleteUser()
+	{
+		if (userToDelete != null)
+		{
+			await userManager.DeleteAsync(userToDelete);
+			applicationUsers.Remove(userToDelete);
+			userToDelete = null;
+		}
+		StateHasChanged();
+	}
+
+	private void CancelDelete()
+	{
+		userToDelete = null;
+		StateHasChanged();
+	}
+}
