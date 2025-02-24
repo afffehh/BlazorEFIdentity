@@ -10,7 +10,7 @@
         public DateTime DateTime { get; set; } = DateTime.UtcNow;
         public decimal ClosingBalance { get; set; }
         public string Currency { get; set; }
-        public string Reserved { get; set; }
+        public bool IsReserved { get; set; }
         public string Message { get; set; }
         public string TransactionNumber { get; set; }
     }

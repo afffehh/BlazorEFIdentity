@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BlazorEFIdentity.Migrations
 {
     /// <inheritdoc />
-    public partial class SecondCreate : Migration
+    public partial class FirstCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -195,7 +195,7 @@ namespace BlazorEFIdentity.Migrations
                     DateTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                     ClosingBalance = table.Column<decimal>(type: "TEXT", nullable: false),
                     Currency = table.Column<string>(type: "TEXT", nullable: false),
-                    Reserved = table.Column<string>(type: "TEXT", nullable: false),
+                    IsReserved = table.Column<bool>(type: "INTEGER", nullable: false),
                     Message = table.Column<string>(type: "TEXT", nullable: false),
                     TransactionNumber = table.Column<string>(type: "TEXT", nullable: false)
                 },

@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlazorEFIdentity.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250212125629_SecondCreate")]
-    partial class SecondCreate
+    [Migration("20250224142117_FirstCreate")]
+    partial class FirstCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -153,11 +153,10 @@ namespace BlazorEFIdentity.Migrations
                     b.Property<int>("FromAccountId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                    b.Property<bool>("IsReserved")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<string>("Reserved")
+                    b.Property<string>("Message")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

@@ -1,0 +1,137 @@
+﻿@page "/accounts"
+@using BlazorEFIdentity.Models
+@using BlazorEFIdentity.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@inject BankServices BankServices
+@inject UserManager<ApplicationUser> userManager
+@inject SignInManager<ApplicationUser> _signInManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@rendermode InteractiveServer
+@attribute [Authorize]
+
+<h3>My Accounts</h3>
+
+@if (accounts == null)
+{
+    <p>Laddar konton...</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Account number</th>
+                <th>Name</th>
+                <th>Balance</th>
+                <th>Account type</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var account in accounts)
+            {
+                <tr>
+                    <td>@account.AccountNumber</td>
+                    <td>@account.Name</td>
+                    <td>@account.Balance.ToString("C")</td>
+                    <td>@account.AccountType</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => SelectAccount(account.Id)">Visa transaktioner</button>
+                        <button class="btn btn-danger" @onclick="() => DeleteAccount(account.Id)">Ta bort</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h3>Skapa nytt bankkonto</h3>
+<input @bind="newAccountName" placeholder="Kontonamn" />
+<input @bind="newAccountType" placeholder="Kontotyp" />
+<button class="btn btn-success" @onclick="CreateAccountAsync">Skapa</button>
+
+@if (selectedAccountId != null)
+{
+    <h3>Transaktioner för valt konto</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Belopp</th>
+                <th>Meddelande</th>
+                <th>Saldo efter transaktion</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var transaction in transactions)
+            {
+                <tr>
+                    <td>@transaction.DateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@transaction.Currency @transaction.ClosingBalance</td>
+                    <td>@transaction.Message</td>
+                    <td>@transaction.ClosingBalance.ToString("C")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h3>Gör en insättning</h3>
+    <input type="number" @bind="depositAmount" placeholder="Belopp" />
+    <input @bind="depositMessage" placeholder="Meddelande" />
+    <button class="btn btn-success" @onclick="Deposit">Sätt in</button>
+}
+
+@code {
+    private List<Account> accounts;
+    private List<Transactions> transactions;
+    private string newAccountName;
+    private string newAccountType;
+    private string userId;
+    private int? selectedAccountId;
+    private decimal depositAmount;
+    private string depositMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        userId = authState.User.FindFirst("sub")?.Value;
+        if (!string.IsNullOrEmpty(userId))
+        {
+            accounts = await BankServices.GetAccountsAsync(userId);
+        }
+    }
+
+    private async Task CreateAccountAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(newAccountName) && !string.IsNullOrWhiteSpace(newAccountType))
+        {
+            await BankServices.CreateAccountAsync(userId, newAccountName, newAccountType);
+            accounts = await BankServices.GetAccountsAsync(userId);
+        }
+    }
+
+    private async Task DeleteAccount(int accountId)
+    {
+        await BankServices.DeleteAccountAsync(accountId, userId);
+        accounts = await BankServices.GetAccountsAsync(userId);
+    }
+
+    private async Task SelectAccount(int accountId)
+    {
+        selectedAccountId = accountId;
+        transactions = await BankServices.GetTransactionsByUserAsync(accountId);
+    }
+
+    private async Task Deposit()
+    {
+        if (selectedAccountId != null && depositAmount > 0)
+        {
+            await BankServices.CreateTransactionAsync(selectedAccountId.Value, selectedAccountId.Value, depositAmount, depositMessage);
+            transactions = await BankServices.GetTransactionsByUserAsync(selectedAccountId.Value);
+            accounts = await BankServices.GetAccountsAsync(userId);
+            depositAmount = 0;
+            depositMessage = "";
+        }
+    }
+}

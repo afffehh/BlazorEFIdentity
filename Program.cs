@@ -1,6 +1,7 @@
 using BlazorEFIdentity.Components;
 using BlazorEFIdentity.Components.Account;
 using BlazorEFIdentity.Data;
+using BlazorEFIdentity.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
@@ -22,6 +23,9 @@ namespace BlazorEFIdentity
             builder.Services.AddScoped<IdentityUserAccessor>();
             builder.Services.AddScoped<IdentityRedirectManager>();
             builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
+
+            builder.Services.AddScoped<BankServices>();
+
 
             builder.Services.AddAuthorization();
             builder.Services.AddAuthentication(options =>
